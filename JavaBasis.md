@@ -51,3 +51,95 @@ start()会执行线程的相应准备工作，然后自动执行run()方法的�
 ##### synchronized关键字
 synchronized 关键字解决的是多个线程之间访问资源的同步性，
 synchronized关键字可以保证被它修饰的方法或者代码块在任意时刻只能有一个线程执行。
+
+### Java中ArrayList的扩容机制
+
++ 使用无参构造方法初始化时，复制的是一个空数组。当真正对数组进行添加元素操作时，才真正分配容量。即向数组中添加第一个元素时，数组容量扩为 10。
+
+1. 加入第一个元素时
+
+```java
+/*jdk7*/
+public boolean add(E e) {
+    //添加元素之前，先调用ensureCapacityInternal方法
+    ensureCapacityInternal(size + 1);  // Increments modCount!!
+    //这里看到ArrayList添加元素的实质就相当于为数组赋值
+    elementData[size++] = e;
+    return true;
+}
+//得到最小扩容量
+private void ensureCapacityInternal(int minCapacity) {
+    if (elementData == DEFAULTCAPACITY_EMPTY_ELEMENTDATA) {
+        // 获取默认的容量和传入参数的较大值
+        minCapacity = Math.max(DEFAULT_CAPACITY, minCapacity);
+    }
+
+    ensureExplicitCapacity(minCapacity);
+}
+//判断是否需要扩容
+private void ensureExplicitCapacity(int minCapacity) {
+    modCount++;
+
+    // overflow-conscious code
+    if (minCapacity - elementData.length > 0)
+        //调用grow方法进行扩容，调用此方法代表已经开始扩容了
+        grow(minCapacity);
+}
+```
+
+- 当我们要 add 进第 1 个元素到 ArrayList 时，elementData.length 为 0 （因为还是一个空的 list），因为执行了 `ensureCapacityInternal()` 方法 ，所以 minCapacity 此时为 10。此时，`minCapacity - elementData.length > 0`成立，所以会进入 `grow(minCapacity)` 方法。
+- 当 add 第 2 个元素时，minCapacity 为 2，此时 e lementData.length(容量)在添加第一个元素后扩容成 10 了。此时，`minCapacity - elementData.length > 0` 不成立，所以不会进入 （执行）`grow(minCapacity)` 方法。
+- 添加第 3、4···到第 10 个元素时，依然不会执行 grow 方法，数组容量都为 10。
+
+2. grow()方法
+
+```java
+/**
+  * 要分配的最大数组大小
+  */
+private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+
+/**
+  * ArrayList扩容的核心方法。
+  */
+private void grow(int minCapacity) {
+    // oldCapacity为旧容量，newCapacity为新容量
+    int oldCapacity = elementData.length;
+    //将oldCapacity 右移一位，其效果相当于oldCapacity /2，
+    //我们知道位运算的速度远远快于整除运算，整句运算式的结果就是将新容量更新为旧容量的1.5倍，
+    int newCapacity = oldCapacity + (oldCapacity >> 1);
+    //然后检查新容量是否大于最小需要容量，若还是小于最小需要容量，那么就把最小需要容量当作数组的新容量，
+    if (newCapacity - minCapacity < 0)
+        newCapacity = minCapacity;
+    // 如果新容量大于 MAX_ARRAY_SIZE,进入(执行) `hugeCapacity()` 方法来比较 minCapacity 和 MAX_ARRAY_SIZE，
+    //如果minCapacity大于最大容量，则新容量则为`Integer.MAX_VALUE`，否则，新容量大小则为 MAX_ARRAY_SIZE 即为 `Integer.MAX_VALUE - 8`。
+    if (newCapacity - MAX_ARRAY_SIZE > 0)
+        newCapacity = hugeCapacity(minCapacity);
+    // minCapacity is usually close to size, so this is a win:
+    elementData = Arrays.copyOf(elementData, newCapacity);
+}
+```
+
+**ArrayList在扩容之后，容量会变成原来的1.5倍左右。**
+
+- 当 add 第 1 个元素时，oldCapacity 为 0，经比较后第一个 if 判断成立，newCapacity = minCapacity(为 10)。但是第二个 if 判断不会成立，即 newCapacity 不比 MAX_ARRAY_SIZE 大，则不会进入 `hugeCapacity` 方法。数组容量为 10，add 方法中 return true,size 增为 1。
+- 当 add 第 11 个元素进入 grow 方法时，newCapacity 为 15，比 minCapacity（为 11）大，第一个 if 判断不成立。新容量没有大于数组最大 size，不会进入 hugeCapacity 方法。数组容量扩为 15，add 方法中 return true,size 增为 11。
+- 以此类推······
+
+3. hugeCapacity()方法
+
+```java
+private static int hugeCapacity(int minCapacity) {
+    if (minCapacity < 0) // overflow
+        throw new OutOfMemoryError();
+    //对minCapacity和MAX_ARRAY_SIZE进行比较
+    //若minCapacity大，将Integer.MAX_VALUE作为新数组的大小
+    //若MAX_ARRAY_SIZE大，将MAX_ARRAY_SIZE作为新数组的大小
+    //MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+    return (minCapacity > MAX_ARRAY_SIZE) ?
+        Integer.MAX_VALUE :
+    MAX_ARRAY_SIZE;
+}
+```
+
+如果新容量大于 MAX_ARRAY_SIZE,进入(执行) `hugeCapacity()` 方法来比较 minCapacity 和 MAX_ARRAY_SIZE，如果 minCapacity 大于最大容量，则新容量则为`Integer.MAX_VALUE`，否则，新容量大小则为 MAX_ARRAY_SIZE 即为 `Integer.MAX_VALUE - 8`。

@@ -45,10 +45,41 @@ Redis 通过一个叫做过期字典（可以看作是 hash 表）来保存数�
 + allkeys-random
 + no-eviction
 #### Redis持久化机制
-快照和追加文件
-+ 快照持久化
-Redis 可以通过创建快照来获得存储在内存里面的数据在某个时间点上的副本。Redis 创建快照之后，可以对快照进行备份，可以将快照复制到其他服务器从而创建具有相同数据的服务器副本（Redis 主从结构，主要用来提高 Redis 性能），还可以将快照留在原地以便重启服务器的时候使用。
-+ AOF持久化
+1. AOF日志
+
+每执行一条写操作命令，就将其以追加的方式写入到一个文件里，这种保存写操作命令到日志的持久化方式，就是 Redis 里的 **AOF(\*Append Only File\*)** 持久化功能，**注意只会记录写操作命令，读操作命令是不会被记录的**，因为没意义。
+
+先执行写操作命令后，才将该命令记录到 AOF 日志的好处：
+
++ **避免额外的检查开销**；
++ **不会阻塞当前写操作命令的执行**。
+
+AOF 持久化功能的潜在风险：
+
++ 执行写操作命令和记录日志是两个过程，那当 Redis 在还没来得及将命令写入到硬盘时，服务器发生宕机了，这个数据就会有**丢失的风险**；
++ 由于写操作命令执行成功后才记录到 AOF 日志，所以不会阻塞当前写操作命令的执行，但是**可能会给「下一个」命令带来阻塞风险**。
+
+**三种写回策略**
+
+- **Always**，每次写操作命令执行完后，同步将 AOF 日志数据写回硬盘；
+- **Everysec**，每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，然后每隔一秒将缓冲区里的内容写回到硬盘；
+- **No**，意味着不由 Redis 控制写回硬盘的时机，转交给操作系统控制写回的时机，也就是每次写操作命令执行完后，先将命令写入到 AOF 文件的内核缓冲区，再由操作系统决定何时将缓冲区内容写回硬盘。
+
+![三种写回策略比较](https://img-blog.csdnimg.cn/img_convert/98987d9417b2bab43087f45fc959d32a.png)
+
+**AOF重写机制**
+
+AOF 重写机制是在重写时，读取当前数据库中的所有键值对，然后将每一个键值对用一条命令记录到「新的 AOF 文件」，等到全部记录完后，就将新的 AOF 文件替换掉现有的 AOF 文件。
+
+**AOF后台重写**
+
+Redis 的**重写 AOF 过程是由后台子进程 \*bgrewriteaof\* 来完成的**，这么做可以达到两个好处：
+
+- 子进程进行 AOF 重写期间，主进程可以继续处理命令请求，从而避免阻塞主进程；
+- 子进程带有主进程的数据副本（*数据副本怎么产生的后面会说*），这里使用子进程而不是线程，因为如果是使用线程，多线程之间会共享内存，那么在修改共享内存数据的时候，需要通过加锁来保证数据的安全，而这样就会降低性能。而使用子进程，创建子进程时，父子进程是共享内存数据的，不过这个共享的内存只能以只读的方式，而当父子进程任意一方修改了该共享内存，就会发生「写时复制」，于是父子进程就有了独立的数据副本，就不用加锁来保证数据安全。
+
+2. RDB快照
+
 #### Redis事务
 1. 开始事务（MULTI）。
 2. 命令入队(批量操作 Redis 的命令，先进先出（FIFO）的顺序执行)。
@@ -177,3 +208,82 @@ listpack为压缩列表的改进，每一个listpack结点结构：
 - len，encoding+data的总长度；
 
 **listpack 没有压缩列表中记录前一个节点长度的字段了，listpack 只记录当前节点的长度，当我们向 listpack 加入一个新元素的时候，不会影响其他节点的长度字段的变化，从而避免了压缩列表的连锁更新问题**。
+
+#### Redis常用命令
+
+[redis常用命令](https://www.redis.net.cn/tutorial/3501.html)
+
+1. string
+
+set key value：设定key的值
+
+get key：获取指定key的值
+
+setex key seconds value：设置key的值，同时设置过期时间seconds秒
+
+setnx key value：只有在key不存在时设置key的值
+
+2. hash
+
+hset key field value
+
+hget key field
+
+hdel key field
+
+hkeys key
+
+hvals key
+
+hgetall key
+
+3. list
+
+lpush key value1 [value2]
+
+lrange key start stop
+
+rpop key
+
+llen key
+
+brpop key1 [key2] timeout
+
+4. set
+
+sadd key member1[member2]
+
+smembers key
+
+scard key
+
+sinter key1 [key2]
+
+sunion key1 [key2]
+
+sdiff key1 [key2]
+
+srem key member1[member2]
+
+5. zset
+
+zadd key score1 member1 [score2 member2]
+
+zrange key start stop [withscores]
+
+zincrby key increment member
+
+zrem key member1 [member2]
+
+6. 通用命令
+
+keys pattern：查看所有符合给定模式(pattern)的key
+
+exists key：检查给定key是否存在
+
+type key：返回key所存储的值的类型
+
+ttl key：返回给定key的剩余生存时间，以秒为单位
+
+del key：用于在key存在时删除key
+

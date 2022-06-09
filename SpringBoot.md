@@ -74,6 +74,7 @@ springboot所有自动配置都是在启动的时候扫描并加载：spring.fac
 4. 推断并设置main方法的定义类，找到运行的主类
 
 ###对比一下xml和yaml的配置
+
 ```xml
 <server>
     <port>8081</port>
@@ -89,3 +90,38 @@ server:
 + webjars    `localhost:8080/webjars/`
 + public, static, /**, resourses   `localhost/8080/`
 2. 优先级：resourses > static > public
+
+### SpringBoot常用注解
+
+#### @`SpringBootApplication`
+
+```java
+// 这个注解是SpringBoot项目的基石，创建SpringBoot项目之后会默认在主类加上
+@SpringBootApplication
+public class SpringSecurityJwtGuideApplication {
+      public static void main(java.lang.String[] args) {
+        SpringApplication.run(SpringSecurityJwtGuideApplication.class, args);
+    }
+}
+```
+
+可以看作是 `@Configuration`、`@EnableAutoConfiguration`、`@ComponentScan` 注解的集合。
+
+- `@EnableAutoConfiguration`：启用 SpringBoot 的自动配置机制
+- `@ComponentScan`： 扫描被`@Component` (`@Repository`,`@Service`,`@Controller`)注解的 bean，注解默认会扫描该类所在的包下所有的类。
+- `@Configuration`：允许在 Spring 上下文中注册额外的 bean 或导入其他配置类
+
+#### Spring Bean相关
+
+##### @`Autowired`
+
+自动导入对象到类中，被注入进的类同样要被 Spring 容器管理比如：Service 类注入到 Controller 类中。
+
+##### `@Component`,`@Repository`,`@Service`, `@Controller`
+
+我们一般使用 `@Autowired` 注解让 Spring 容器帮我们自动装配 bean。要想把类标识成可用于 `@Autowired` 注解自动装配的 bean 的类,可以采用以下注解实现：
+
+- `@Component` ：通用的注解，可标注任意类为 `Spring` 组件。如果一个 Bean 不知道属于哪个层，可以使用`@Component` 注解标注。
+- `@Repository` : 对应持久层即 Dao 层，主要用于数据库相关操作。
+- `@Service` : 对应服务层，主要涉及一些复杂的逻辑，需要用到 Dao 层。
+- `@Controller` : 对应 Spring MVC 控制层，主要用于接受用户请求并调用 Service 层返回数据给前端页面。

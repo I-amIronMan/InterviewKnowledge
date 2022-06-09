@@ -113,7 +113,7 @@ public class SpringSecurityJwtGuideApplication {
 
 #### Spring Bean相关
 
-##### @`Autowired`
+##### `@Autowired`
 
 自动导入对象到类中，被注入进的类同样要被 Spring 容器管理比如：Service 类注入到 Controller 类中。
 
@@ -125,3 +125,62 @@ public class SpringSecurityJwtGuideApplication {
 - `@Repository` : 对应持久层即 Dao 层，主要用于数据库相关操作。
 - `@Service` : 对应服务层，主要涉及一些复杂的逻辑，需要用到 Dao 层。
 - `@Controller` : 对应 Spring MVC 控制层，主要用于接受用户请求并调用 Service 层返回数据给前端页面。
+
+##### `@RestController`
+
+`@RestController`注解是`@Controller`和`@ResponseBody`的合集,表示这是个控制器 bean,并且是将函数的返回值直接填入 HTTP 响应体中,是 REST 风格的控制器。
+
+单独使用 `@Controller` 不加 `@ResponseBody`的话一般是用在要返回一个视图的情况，这种情况属于比较传统的 Spring MVC 的应用，对应于前后端不分离的情况。`@Controller` +`@ResponseBody` 返回 JSON 或 XML 形式数据。
+
+##### `@Scope`
+
+声明 Spring Bean 的作用域。
+
+**四种常见的 Spring Bean 的作用域：**
+
+- singleton : 唯一 bean 实例，Spring 中的 bean 默认都是单例的。
+- prototype : 每次请求都会创建一个新的 bean 实例。
+- request : 每一次 HTTP 请求都会产生一个新的 bean，该 bean 仅在当前 HTTP request 内有效。
+- session : 每一个 HTTP Session 会产生一个新的 bean，该 bean 仅在当前 HTTP session 内有效。
+
+##### `@Configuration`
+
+一般用来声明配置类，可以使用 `@Component`注解替代，不过使用`@Configuration`注解声明配置类更加语义化。
+
+#### 常见的HTTP请求类型
+
+- **GET** ：请求从服务器获取特定资源。举个例子：`GET /users`（获取所有学生）
+- **POST** ：在服务器上创建一个新的资源。举个例子：`POST /users`（创建学生）
+- **PUT** ：更新服务器上的资源（客户端提供更新后的整个资源）。举个例子：`PUT /users/12`（更新编号为 12 的学生）
+- **DELETE** ：从服务器删除特定的资源。举个例子：`DELETE /users/12`（删除编号为 12 的学生）
+- **PATCH** ：更新服务器上的资源（客户端提供更改的属性，可以看做作是部分更新）
+
+##### Get请求
+
+@GetMapping("users")` 等价于`@RequestMapping(value="/users",method=RequestMethod.GET)
+
+##### Post请求
+
+@PostMapping("users")` 等价于`@RequestMapping(value="/users",method=RequestMethod.POST)
+
+##### Delete请求
+
+@DeleteMapping("/users/{userId}")`等价于`@RequestMapping(value="/users/{userId}",method=RequestMethod.DELETE)
+
+##### Put请求
+
+@PutMapping("/users/{userId}")` 等价于`@RequestMapping(value="/users/{userId}",method=RequestMethod.PUT)
+
+##### Patch请求
+
+一般实际项目中，我们都是 PUT 不够用了之后才用 PATCH 请求去更新数据。
+
+#### 前后端传值
+
+##### `@PathVariable` 和 `@RequestParam`
+
+`@PathVariable`用于获取路径参数，`@RequestParam`用于获取查询参数。
+
+##### `@RequestBody`
+
+用于读取 Request 请求（可能是 POST,PUT,DELETE,GET 请求）的 body 部分并且**Content-Type 为 application/json** 格式的数据，接收到数据之后会自动将数据绑定到 Java 对象上去。系统会使用`HttpMessageConverter`或者自定义的`HttpMessageConverter`将请求的 body 中的 json 字符串转换为 java 对象。

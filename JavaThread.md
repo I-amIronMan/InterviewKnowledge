@@ -218,3 +218,80 @@ Java 提供的线程安全的 `Queue` 可以分为**阻塞队列**和**非阻塞
 
 `PriorityBlockingQueue` 并发控制采用的是可重入锁 `ReentrantLock`，队列为无界队列。简单地说，它就是 `PriorityQueue` 的线程安全版本。不可以插入 null 值，同时，插入队列的对象必须是可比较大小的（comparable），否则报 `ClassCastException` 异常。它的插入操作 put 方法不会 block，因为它是无界队列。
 
+###  Atomic 原子类
+
+Atomic 是指一个操作是不可中断的。即使是在多个线程一起执行的时候，一个操作一旦开始，就不会被其他线程干扰。
+
+根据操作的数据类型，可以将 JUC 包中的原子类分为 4 类：
+
+**基本类型**
+
+使用原子的方式更新基本类型
+
+- AtomicInteger：整型原子类
+- AtomicLong：长整型原子类
+- AtomicBoolean ：布尔型原子类
+
+**数组类型**
+
+使用原子的方式更新数组里的某个元素
+
+- AtomicIntegerArray：整型数组原子类
+- AtomicLongArray：长整型数组原子类
+- AtomicReferenceArray ：引用类型数组原子类
+
+**引用类型**
+
+- AtomicReference：引用类型原子类
+- AtomicMarkableReference：原子更新带有标记的引用类型。该类将 boolean 标记与引用关联起来。
+- AtomicStampedReference ：原子更新带有版本号的引用类型。该类将整数值与引用关联起来，可用于解决原子的更新数据和数据的版本号，可以解决使用 CAS 进行原子更新时可能出现的 ABA 问题。
+
+**对象的属性修改类型**
+
+- AtomicIntegerFieldUpdater:原子更新整型字段的更新器
+- AtomicLongFieldUpdater：原子更新长整型字段的更新器
+- AtomicReferenceFieldUpdater：原子更新引用类型里的字段
+
+####  基本类型原子类
+
+**常用方法：**
+
+```java
+public final int get() //获取当前的值
+public final int getAndSet(int newValue)//获取当前的值，并设置新的值
+public final int getAndIncrement()//获取当前的值，并自增
+public final int getAndDecrement() //获取当前的值，并自减
+public final int getAndAdd(int delta) //获取当前的值，并加上预期的值
+boolean compareAndSet(int expect, int update) //如果输入的数值等于预期值，则以原子方式将该值设置为输入值（update）
+public final void lazySet(int newValue)//最终设置为newValue,使用 lazySet 设置之后可能导致其他线程在之后的一小段时间内还是可以读到旧的值。
+```
+
+**线程安全原理简单分析：**
+
+AtomicInteger 类主要利用 CAS (compare and swap) + volatile 和 native 方法来保证原子操作，从而避免 synchronized 的高开销，执行效率大为提升。
+
+CAS 的原理是拿期望的值和原本的一个值作比较，如果相同则更新成新的值。UnSafe 类的 objectFieldOffset() 方法是一个本地方法，这个方法是用来拿到“原来的值”的内存地址。另外 value 是一个 volatile 变量，在内存中可见，因此 JVM 可以保证任何时刻任何线程总能拿到该变量的最新值。
+
+#### 数组类型原子类
+
+**常用方法：**
+
+```java
+public final int get(int i) //获取 index=i 位置元素的值
+public final int getAndSet(int i, int newValue)//返回 index=i 位置的当前的值，并将其设置为新值：newValue
+public final int getAndIncrement(int i)//获取 index=i 位置元素的值，并让该位置的元素自增
+public final int getAndDecrement(int i) //获取 index=i 位置元素的值，并让该位置的元素自减
+public final int getAndAdd(int i, int delta) //获取 index=i 位置元素的值，并加上预期的值
+boolean compareAndSet(int i, int expect, int update) //如果输入的数值等于预期值，则以原子方式将 index=i 位置的元素值设置为输入值（update）
+public final void lazySet(int i, int newValue)//最终 将index=i 位置的元素设置为newValue,使用 lazySet 设置之后可能导致其他线程在之后的一小段时间内还是可以读到旧的值。
+```
+
+#### 引用类型原子类
+
+基本类型原子类只能更新一个变量，如果需要原子更新多个变量，需要使用 引用类型原子类。
+
+####  对象的属性修改类型原子类
+
+如果需要原子更新某个类里的某个字段时，需要用到对象的属性修改类型原子类。
+
+要想原子地更新对象的属性需要两步。第一步，因为对象的属性修改类型原子类都是抽象类，所以每次使用都必须使用静态方法 newUpdater()创建一个更新器，并且需要设置想要更新的类和属性。第二步，更新的对象属性必须使用 public volatile 修饰符。

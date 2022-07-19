@@ -222,6 +222,80 @@ JDK1.6 对锁的实现引入了大量的优化，如偏向锁、轻量级锁、�
 
 4. 锁消除优化
 
+#### ReentrantLock
+
+相较于synchronized，它具备以下特点：
+
++ 可中断
++ 可设置超时时间
++ 可设置为公平锁
++ 支持多个条件变量
+
+基本语法：
+
+```java
+// 获取锁
+reentrantLock.lock();
+try {
+    // 临界区
+} finally {
+    // 释放锁
+    reentrantLock.unlock();
+}
+```
+
+1. 可重入
+
+可重入是指同一个线程如果首次获取了这把锁，那么因为他是这把锁的拥有者，因此有权利再次获得这把锁。
+
+如果是不可重入锁，那么第二次获取锁时，自己也会被挡住。
+
+2. 可打断
+
+```java
+try {
+    lock.lockInterruptibly();
+} catch (InterruptedException e) {
+    e.printStackTrace();
+}
+// 如果没有竞争，那么此方法会获取到lock对象锁
+// 如果有竞争，就会进入阻塞队列，可以被其他线程用interrupt()方法打断
+// 此方法可以用来避免死锁
+```
+
+3. 锁超时
+
+```java
+lock.tryLock(); // 返回boolean值，返回false表示没有获得锁
+try {
+    lock.tryLock(1, TimeUnit.SECONDS);
+} catch (InterruptedException e) {
+    e.printStackTrace();
+}
+// 一秒内获得锁返回true，否则返回false
+```
+
+如果长时间没有获取到锁，就放弃获取锁，停止等待。
+
+4. 公平锁
+
+ReentrantLock 默认是不公平的。
+
+构造函数中带入参数true可以让其变为公平锁。
+
+5. 条件变量
+
+ReentrantLock的条件变量比synchronized的强大之处在于：它支持多个条件变量。
+
+使用流程：
+
++ await()前需要获得锁；
++ await()执行后，会释放锁，进入conditionObject等待；
++ await()的线程被唤醒（或打断、或超时）去重新竞争lock锁；
++ 竞争lock锁成功后，从await()后继续执行。
+
+
+
 #### synchronized 和 ReentrantLock 的区别
 
 ##### 两者都是可重入锁

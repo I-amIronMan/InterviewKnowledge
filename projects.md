@@ -6,6 +6,20 @@
 
 使用RedisTemplate类去做初始化，连接到Redis服务器并设置键和值的序列化方式。redisTemplate中有专门用来操作Redis数据类型的方法，如opsForValue()实现了对redis字符串数据类型进行操纵的方法，当然也包括了对其他数据类型操作的方法。
 
+#### 2.为什么使用Redis作为MySQL的缓存？
+
+主要是因为 **Redis 具备「高性能」和「高并发」两种特性**。
+
+***(1)Redis 具备高性能***
+
+假如用户第一次访问 MySQL 中的某些数据。这个过程会比较慢，因为是从硬盘上读取的。将该用户访问的数据缓存在 Redis 中，这样下一次再访问这些数据的时候就可以直接从缓存中获取了，操作 Redis 缓存就是直接操作内存，所以速度相当快。
+
+***(2)Redis 具备高并发***
+
+单台设备的 Redis 的 QPS（Query Per Second，每秒钟处理完请求的次数） 是 MySQL 的 10 倍，Redis 单机的 QPS 能轻松破 10w，而 MySQL 单机的 QPS 很难破 1w。
+
+所以，直接访问 Redis 能够承受的请求是远远大于直接访问 MySQL 的，所以我们可以考虑把数据库中的部分数据转移到缓存中去，这样用户的一部分请求会直接到缓存这里而不用经过数据库。
+
 ### kafka
 
 #### 1.kafka在项目中如何使用？
@@ -39,17 +53,40 @@ kafka中有一个offset代表他的序号，消费者消费了数据之后，每
 
 唯一可能导致消费者丢失消息的情况，就是你消费到了这个消息，然后消费者那边自动提交了offset，然kafka以为你已经消费好了这个消息，但其实你才刚准备处理这个消息，你还没有处理，就挂了，此时这条消息就丢失了。
 
-### MySQL
-
-
-
 ### SpringSecurity
 
+#### 如何实现？
 
+自定义类继承WebSecurityConfigurerAdapter类，重写configure方法实现权限管理。
 
 ## 项目二：外卖平台项目
 
 ### SpringBoot
+
+#### 1.Spring和SpringBoot有什么关系？
+
+**Spring Boot** 将 **Spring Framework** 的功能进行了扩展，将繁琐的配置功能进行了内部整合，通过一些自动化的配置和类似 **SPI** 的发现机制来自动感知功能组件，大大降低了使用成本，而且保证了和**Spring Framework** 的一致性。
+
+#### 2.Spring的拦截器如何实现？
+
+自定义类实现HandlerInterceptor接口。重写抽象方法：preHandle()、postHandle()、afterCompletion()。
+
+- preHandle：在业务处理器处理请求之前被调用。预处理，可以进行编码、安全控制、权限校验等处理；
+- postHandle：在业务处理器处理请求执行完成后，生成视图之前执行。后处理（调用了Service并返回ModelAndView，但未进行页面渲染），有机会修改ModelAndView （这个博主就基本不怎么用了）；
+- afterCompletion：在DispatcherServlet完全处理完请求后被调用，可用于清理资源等。返回处理（已经渲染了页面）。
+
+#### 3.Spring的AOP、IOC？
+
+AOP(Aspect-Oriented Programming:面向切面编程)能够将那些与业务无关，却为业务模块所共同调用的逻辑或责任（例如事务处理、日志管理、权限控制等）封装起来，便于减少系统的重复代码，降低模块间的耦合度，并有利于未来的可拓展性和可维护性。
+
+**IoC（Inverse of Control:控制反转）** 是一种设计思想，而不是一个具体的技术实现。IoC 的思想就是将原本在程序中手动创建对象的控制权，交由 Spring 框架来管理。
+
+**为什么叫控制反转？**
+
+- **控制** ：指的是对象创建（实例化、管理）的权力
+- **反转** ：控制权交给外部环境（Spring 框架、IoC 容器）
+
+将对象之间的相互依赖关系交给 IoC 容器来管理，并由 IoC 容器完成对象的注入。这样可以很大程度上简化应用的开发，把应用从复杂的依赖关系中解放出来。 IoC 容器就像是一个工厂一样，当我们需要创建一个对象的时候，只需要配置好配置文件/注解即可，完全不用考虑对象是如何被创建出来的。
 
 ### MyBatisPlus
 
@@ -60,10 +97,6 @@ MP是MyBatis的一个增强工具，在MyBatis的基础上制作增强不做该�
 #### 2.BaseMapper
 
 该接口已经给出了常用的CRUD操作的方法，如：insert(T entity)、deleteById(Serializable id)、updateById(@Param("et") T entity)、selectById(Serializable id)等。
-
-#### 3.IService
-
-
 
 ### Redis
 
@@ -83,4 +116,3 @@ MP是MyBatis的一个增强工具，在MyBatis的基础上制作增强不做该�
 + @Caching：Java注解的机制决定了，一个方法上只能有一个相同的注解生效。那有时候可能一个方法会操作多个缓存（这个在删除缓存操作中比较常见，在添加操作中不太常见）。Spring Cache当然也考虑到了这种情况，`@Caching`注解就是用来解决这类情况的，大家一看它的源码就明白了。
 + @CacheConfig：前面四个注解都是作用在方法上的，而有些配置可能又是一个类通用的，这种情况就可以使用`@CacheConfig`了，它是一个类级别的注解，可以在类级别上配置cacheNames、keyGenerator、cacheManager、cacheResolver等。
 
-### MySQL

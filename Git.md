@@ -41,3 +41,12 @@ git branch -a：列出所有的本地分支和远程分支
 + git tag【name】 创建标签
 + git push 【shortname】【name】
 + git checkout -b 【branch】【name】 检出标签
+
+#### git冲突解决
+1. git config pull.rebase false
+2. git pull origin master
+3. 代码里有冲突的部分会显示：
+  + <<<< HEAD/=====/>>>>> 版本
+  + 从<<<< HEAD/到=====是本地代码，从=====到>>>>> 版本是拉取下来的代码
+  + 手动解决冲突
+4. 冲突解决
